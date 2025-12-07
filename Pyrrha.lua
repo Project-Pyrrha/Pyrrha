@@ -369,7 +369,7 @@ function check_for_update(force)
     if not Features.Global.checkUpdate and not force then return end
 
     local url = 'https://raw.githubusercontent.com/Project-Pyrrha/Pyrrha/refs/heads/main/info/version.json'
-    local filePath = os.getenv('TEMP') .. '\\pyrrha_version.json'
+    local filePath = os.getenv('TEMP') .. '\\version.json'
 
     downloadUrlToFile(url, filePath, function(id, status, p1, p2)
         if status == dlstatus.STATUS_ENDDOWNLOADDATA then
@@ -381,7 +381,7 @@ function check_for_update(force)
                 
                 local info = decodeJson(response)
                 local tag = "{00FF00}[Pyrrha] "
-                local local_version = 1.0 -- Matches script_version
+                local local_version = 1.1 -- Matches script_version
                 
                 if info and info.version then
                     local remote_version = tonumber(info.version)
