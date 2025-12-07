@@ -1,6 +1,6 @@
 script_name("Pyrrha")
 script_author("rmux")
-script_version("1.1")
+script_version("1.2")
 script_dependencies("SAMP")
 
 require "lib.moonloader"
@@ -51,7 +51,12 @@ local Features = {
         norl = false,
         instantCrosshair = false,
         patch_showCrosshairInstantly = nil,
-        hitsound = false
+        hitsound = false,
+        aimbotEnabled = false,
+        aimThroughWalls = false,
+        drawFovCircle = false,
+        aimFov = 5,
+        aimMaxDist = 100
     },
     Visual = {
         espEnabled = false,
@@ -134,7 +139,9 @@ local UI_Buffers = {
     godMode = imgui.ImBool(false),
     reconnectDelay = imgui.ImInt(5),
     configName = imgui.ImBuffer(256),
-    configSelect = imgui.ImInt(0)
+    configSelect = imgui.ImInt(0),
+    aimFov = imgui.ImInt(5),
+    aimMaxDist = imgui.ImInt(100)
 }
 
 -- ===============================================================================
@@ -244,6 +251,8 @@ function syncUIBuffers()
     UI_Buffers.bmxMegaJump.v = Features.Misc.bmxMegaJump
     UI_Buffers.godMode.v = Features.Misc.godMode
     UI_Buffers.reconnectDelay.v = Features.Global.reconnectDelay
+    UI_Buffers.aimFov.v = Features.Weapon.aimFov
+    UI_Buffers.aimMaxDist.v = Features.Weapon.aimMaxDist
 end
 
 function saveSettings(filename)
@@ -381,7 +390,7 @@ function check_for_update(force)
                 
                 local info = decodeJson(response)
                 local tag = "{00FF00}[Pyrrha] "
-                local local_version = 1.1 -- Matches script_version
+                local local_version = 1.2 -- Matches script_version
                 
                 if info and info.version then
                     local remote_version = tonumber(info.version)
@@ -448,6 +457,17 @@ end
 function drawVisuals()
     -- Combined visual loop for efficiency
     local visuals = Features.Visual
+
+    -- Aimbot FOV Circle
+    if Features.Weapon.drawFovCircle and Features.Weapon.aimbotEnabled then
+        local ws, hs = getScreenResolution()
+        local cx = memory.getfloat(0xB6EC10, 4, false)
+        local cy = memory.getfloat(0xB6EC14, 4, false)
+        local xc, yc = ws * cy, hs * cx
+        local px_radius = ((ws / 2) / getCameraFov()) * Features.Weapon.aimFov
+        renderFigure2D(xc, yc, 60, px_radius, 0xFFFFFFFF)
+    end
+
     if not visuals.espEnabled and not visuals.linesEnabled and not visuals.skeletonEnabled and not visuals.infoBarEnabled and not visuals.headDot then return end
 
     -- 1. Info Bar
@@ -751,6 +771,14 @@ function imgui.OnDrawFrame()
             if imgui.Checkbox(u8'Hitsound', UI_Buffers.hitsound) then
                 Features.Weapon.hitsound = UI_Buffers.hitsound.v
             end
+
+            imgui.Separator()
+            imgui.Text("Silent Aimbot")
+            if imgui.Checkbox(u8'Enable Silent Aim', imgui.ImBool(Features.Weapon.aimbotEnabled)) then Features.Weapon.aimbotEnabled = not Features.Weapon.aimbotEnabled end
+            if imgui.Checkbox(u8'Through Walls', imgui.ImBool(Features.Weapon.aimThroughWalls)) then Features.Weapon.aimThroughWalls = not Features.Weapon.aimThroughWalls end
+            if imgui.Checkbox(u8'Draw FOV Circle', imgui.ImBool(Features.Weapon.drawFovCircle)) then Features.Weapon.drawFovCircle = not Features.Weapon.drawFovCircle end
+            if imgui.SliderInt(u8'FOV', UI_Buffers.aimFov, 1, 90) then Features.Weapon.aimFov = UI_Buffers.aimFov.v end
+            if imgui.SliderInt(u8'Max Distance', UI_Buffers.aimMaxDist, 1, 200) then Features.Weapon.aimMaxDist = UI_Buffers.aimMaxDist.v end
 
         elseif Features.Global.activeTab == 2 then -- VISUAL
             CenterText(u8'VISUAL CONFIGURATION')
@@ -1079,7 +1107,7 @@ function imgui.OnDrawFrame()
             CenterText(u8'ABOUT PYRRHA')
             imgui.Separator()
             imgui.Text(u8'Pyrrha - Multi-purpose Utility Script')
-            imgui.Text(u8'Version: 1.0 (Head Dot & Visuals)')
+            imgui.Text(u8'Version: 1.2 (Silent Aimbot)')
             imgui.Text(u8'Author: rmux')
 
             imgui.Spacing()
@@ -1133,6 +1161,106 @@ function sampev.onSendGiveDamage(playerId, damage, weapon, bodypart)
     if Features.Weapon.hitsound then
         local audio = loadAudioStream('moonloader/resource/pyrrha/tick.mp3')
         if audio then setAudioStreamState(audio, 1) end
+    end
+end
+
+function sampev.onSendBulletSync(data)
+    math.randomseed(os.clock())
+    if not Features.Weapon.aimbotEnabled then return end
+    local weap = getCurrentCharWeapon(PLAYER_PED)
+    if not getDamage(weap) then return end
+    local id, ped = getClosestPlayerFromCrosshair()
+    if id == -1 then return end
+    if not getcond(ped) then return end
+    data.targetType = 1
+    local px, py, pz = getCharCoordinates(ped)
+    data.targetId = id
+
+    data.target = { x = px + rand(), y = py + rand(), z = pz + rand() }
+    data.center = { x = rand(), y = rand(), z = rand() }
+
+    lua_thread.create(function()
+         wait(1)
+        sampSendGiveDamage(id, getDamage(weap), weap, 3)
+    end)
+end
+
+function getDamage(weap)
+	local damage = {
+		[22] = 8.25, [23] = 13.2, [24] = 46.200000762939, [25] = 30, [26] = 30,
+		[27] = 30, [28] = 6.6, [29] = 8.25, [30] = 9.9, [31] = 9.9000005722046,
+		[32] = 6.6, [33] = 25, [38] = 46.2
+	}
+	return (damage[weap] or 0) + math.random(1e9)/1e15
+end
+
+function getcond(ped)
+	if Features.Weapon.aimThroughWalls then return true
+	else return canPedBeShot(ped) end
+end
+
+function rand() return math.random(-50, 50) / 100 end
+
+function getpx()
+    local ws, hs = getScreenResolution()
+	return ((ws / 2) / getCameraFov()) * Features.Weapon.aimFov
+end
+
+function getClosestPlayerFromCrosshair()
+	local R1, target = getCharPlayerIsTargeting(PLAYER_HANDLE)
+	local R2, player = sampGetPlayerIdByCharHandle(target)
+	if R2 then return player, target end
+	local minDist = getpx()
+	local closestId, closestPed = -1, -1
+    
+    local ws, hs = getScreenResolution()
+    local cx = memory.getfloat(0xB6EC10, 4, false)
+    local cy = memory.getfloat(0xB6EC14, 4, false)
+    local xc, yc = ws * cy, hs * cx
+
+	for i = 0, 999 do
+		local res, ped = sampGetCharHandleBySampPlayerId(i)
+		if res then
+			if getDistanceFromPed(ped) < Features.Weapon.aimMaxDist then
+                local xi, yi = convert3DCoordsToScreen(getCharCoordinates(ped))
+                if xi and yi then
+                    local dist = math.sqrt( (xi - xc) ^ 2 + (yi - yc) ^ 2 )
+                    if dist < minDist then
+                        minDist = dist
+                        closestId, closestPed = i, ped
+                    end
+                end
+			end
+		end
+	end
+	return closestId, closestPed
+end
+
+function canPedBeShot(ped)
+    local ws, hs = getScreenResolution()
+    local cx = memory.getfloat(0xB6EC10, 4, false)
+    local cy = memory.getfloat(0xB6EC14, 4, false)
+    local xc, yc = ws * cy, hs * cx
+	local ax, ay, az = convertScreenCoordsToWorld3D(xc, yc, 0)
+	local bx, by, bz = getCharCoordinates(ped)
+	return not select(1, processLineOfSight(ax, ay, az, bx, by, bz + 0.7, true, false, false, true, false, true, false, false))
+end
+
+function getDistanceFromPed(ped)
+	local ax, ay, az = getCharCoordinates(PLAYER_PED)
+	local bx, by, bz = getCharCoordinates(ped)
+	return math.sqrt( (ax - bx) ^ 2 + (ay - by) ^ 2 + (az - bz) ^ 2 )
+end
+
+function renderFigure2D(x, y, points, radius, color)
+    local step = math.pi * 2 / points
+    local render_start, render_end = {}, {}
+    for i = 0, math.pi * 2, step do
+        render_start[1] = radius * math.cos(i) + x
+        render_start[2] = radius * math.sin(i) + y
+        render_end[1] = radius * math.cos(i + step) + x
+        render_end[2] = radius * math.sin(i + step) + y
+        renderDrawLine(render_start[1], render_start[2], render_end[1], render_end[2], 1, color)
     end
 end
 
@@ -1326,7 +1454,7 @@ function main()
     while not isSampLoaded() or not isSampAvailable() do wait(100) end
     
     apply_flux_style()
-    sampAddChatMessage("{00FF00}[Pyrrha 1.1] Script loaded! Press 'U' for menu.", -1)
+    sampAddChatMessage("{00FF00}[Pyrrha 1.2] Script loaded! Press 'U' for menu.", -1)
     writeLog("Script loaded successfully!")
     
     check_for_update()
