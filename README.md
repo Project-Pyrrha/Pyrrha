@@ -1,4 +1,4 @@
-# Pyrrha 1.1
+# Pyrrha 1.2
 
 ## 📋 Features
 
