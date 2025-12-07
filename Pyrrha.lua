@@ -1,6 +1,6 @@
 script_name("Pyrrha")
 script_author("rmux")
-script_version("1.0")
+script_version("1.1")
 script_dependencies("SAMP")
 
 require "lib.moonloader"
@@ -11,6 +11,7 @@ local encoding = require 'encoding'
 local memory = require 'memory'
 local ffi = require 'ffi'
 local lfs = require 'lfs'
+local dlstatus = require('moonloader').download_status
 
 encoding.default = 'CP1251'
 local u8 = encoding.UTF8
@@ -42,7 +43,8 @@ local Features = {
     Global = {
         scriptEnabled = true,
         reconnectDelay = 5,
-        activeTab = 1
+        activeTab = 1,
+        checkUpdate = true
     },
     Weapon = {
         spread = false,
@@ -362,6 +364,72 @@ function getBodyPartCoordinates(id, handle)
     return bonePosVec[0], bonePosVec[1], bonePosVec[2]
 end
 
+function check_for_update(force)
+    -- Only run the check if the configuration setting is enabled or forced via button
+    if not Features.Global.checkUpdate and not force then return end
+
+    local url = 'https://raw.githubusercontent.com/Project-Pyrrha/Pyrrha/refs/heads/main/info/version.json'
+    local filePath = os.getenv('TEMP') .. '\\pyrrha_version.json'
+
+    downloadUrlToFile(url, filePath, function(id, status, p1, p2)
+        if status == dlstatus.STATUS_ENDDOWNLOADDATA then
+            local f = io.open(filePath, 'r')
+            if f then
+                local response = f:read('*a')
+                f:close()
+                os.remove(filePath)
+                
+                local info = decodeJson(response)
+                local tag = "{00FF00}[Pyrrha] "
+                local local_version = 1.0 -- Matches script_version
+                
+                if info and info.version then
+                    local remote_version = tonumber(info.version)
+                    
+                    if local_version and remote_version then
+                        if local_version == remote_version then
+                            sampAddChatMessage(tag .. 'You are using {0E8604}the current {888EA0}version of the script', -1)
+                        elseif local_version > remote_version then
+                            sampAddChatMessage(tag .. 'You are using {F9D82F}the experimental {888EA0}version of the script', -1)
+                        elseif local_version < remote_version then
+                            sampAddChatMessage(tag .. 'A {F9D82F}new update {888EA0}is available!', -1)
+                            sampAddChatMessage(
+                                string.format(
+                                    '{888EA0}Version: {F9D82F}%s {888EA0}| Codename: {F9D82F}%s {888EA0}| Date: {F9D82F}%s',
+                                    info.version,
+                                    info.codename or "Unknown",
+                                    info.date or "Unknown"
+                                ), 
+                                -1
+                            )
+                            sampAddChatMessage(tag .. 'Download: {0E8604}https://github.com/Project-Pyrrha/Pyrrha', -1)
+                        end
+                    else
+                        sampAddChatMessage(tag .. '{B31A06}Error: {888EA0}could not compare version numbers', -1)
+                    end
+                else
+                    sampAddChatMessage(tag .. '{B31A06}Error: {888EA0}invalid JSON format', -1)
+                end
+            else
+                sampAddChatMessage("{00FF00}[Pyrrha] {B31A06}Error: {888EA0}failed to read version file", -1)
+            end
+        end
+    end)
+end
+
+function unfreeze_player()
+    if isCharInAnyCar(PLAYER_PED) then
+        local car = storeCarCharIsInNoSave(PLAYER_PED)
+        freezeCarPosition(car, false)
+    else
+        setPlayerControl(PLAYER_HANDLE, true)
+        freezeCharPosition(PLAYER_PED, false)
+        clearCharTasksImmediately(PLAYER_PED)
+    end
+    restoreCameraJumpcut()
+    sampAddChatMessage('{00FF00}[Pyrrha] You have been {29C730}unfrozen{FFFFFF}.', -1)
+end
+
 function explode_argb(argb)
     local a = bit.band(bit.rshift(argb, 24), 0xFF)
     local r = bit.band(bit.rshift(argb, 16), 0xFF)
@@ -627,6 +695,7 @@ function imgui.OnDrawFrame()
             imgui.Spacing()
             imgui.TextColored(imgui.ImVec4(0.80, 0.00, 0.00, 1.0), u8"Quick Actions")
             if imgui.Button(u8'Reconnect', imgui.ImVec2(-1, 30)) then performReconnect(Features.Global.reconnectDelay) end
+            if imgui.Button(u8'Unfreeze', imgui.ImVec2(-1, 30)) then unfreeze_player() end
             if imgui.Button(u8'Fix Wheels', imgui.ImVec2(-1, 30)) then
                 if isCharInAnyCar(PLAYER_PED) then
                     local veh = storeCarCharIsInNoSave(PLAYER_PED)
@@ -1012,6 +1081,17 @@ function imgui.OnDrawFrame()
             imgui.Text(u8'Pyrrha - Multi-purpose Utility Script')
             imgui.Text(u8'Version: 1.0 (Head Dot & Visuals)')
             imgui.Text(u8'Author: rmux')
+
+            imgui.Spacing()
+            imgui.Separator()
+            
+            if imgui.Checkbox(u8'Check Updates on Startup', imgui.ImBool(Features.Global.checkUpdate)) then
+                Features.Global.checkUpdate = not Features.Global.checkUpdate
+            end
+            
+            if imgui.Button(u8'Check for Updates', imgui.ImVec2(-1, 30)) then
+                check_for_update(true)
+            end
         end
         imgui.EndChild()
         imgui.End()
@@ -1246,8 +1326,11 @@ function main()
     while not isSampLoaded() or not isSampAvailable() do wait(100) end
     
     apply_flux_style()
-    sampAddChatMessage("{00FF00}[Pyrrha 1.0] Script loaded! Press 'U' for menu.", -1)
+    sampAddChatMessage("{00FF00}[Pyrrha 1.1] Script loaded! Press 'U' for menu.", -1)
     writeLog("Script loaded successfully!")
+    
+    check_for_update()
+
     imgui.Process = false
     
     while true do
