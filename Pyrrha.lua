@@ -1,6 +1,6 @@
 script_name("Pyrrha")
 script_author("rmux")
-script_version("1.2")
+script_version("1.3")
 script_dependencies("SAMP")
 
 require "lib.moonloader"
@@ -56,7 +56,11 @@ local Features = {
         aimThroughWalls = false,
         drawFovCircle = false,
         aimFov = 5,
-        aimMaxDist = 100
+        aimMaxDist = 100,
+        targetId = -1,
+        infiniteAmmo = false,
+        fullSkills = false,
+        targetBone = 0
     },
     Visual = {
         espEnabled = false,
@@ -141,7 +145,11 @@ local UI_Buffers = {
     configName = imgui.ImBuffer(256),
     configSelect = imgui.ImInt(0),
     aimFov = imgui.ImInt(5),
-    aimMaxDist = imgui.ImInt(100)
+    aimMaxDist = imgui.ImInt(100),
+    aimTargetId = imgui.ImInt(-1),
+    infiniteAmmo = imgui.ImBool(false),
+    fullSkills = imgui.ImBool(false),
+    targetBone = imgui.ImInt(0)
 }
 
 -- ===============================================================================
@@ -253,6 +261,10 @@ function syncUIBuffers()
     UI_Buffers.reconnectDelay.v = Features.Global.reconnectDelay
     UI_Buffers.aimFov.v = Features.Weapon.aimFov
     UI_Buffers.aimMaxDist.v = Features.Weapon.aimMaxDist
+    UI_Buffers.aimTargetId.v = Features.Weapon.targetId
+    UI_Buffers.infiniteAmmo.v = Features.Weapon.infiniteAmmo
+    UI_Buffers.fullSkills.v = Features.Weapon.fullSkills
+    UI_Buffers.targetBone.v = Features.Weapon.targetBone
 end
 
 function saveSettings(filename)
@@ -390,7 +402,7 @@ function check_for_update(force)
                 
                 local info = decodeJson(response)
                 local tag = "{00FF00}[Pyrrha] "
-                local local_version = 1.2 -- Matches script_version
+                local local_version = 1.3 -- Matches script_version
                 
                 if info and info.version then
                     local remote_version = tonumber(info.version)
@@ -713,6 +725,16 @@ function imgui.OnDrawFrame()
             imgui.Spacing()
             imgui.Separator()
             imgui.Spacing()
+
+            local ip, port = sampGetCurrentServerAddress()
+            if ip then
+                imgui.TextColored(imgui.ImVec4(0.6, 0.6, 0.6, 1.0), u8"Server IP:")
+                imgui.Text(ip .. ":" .. port)
+                imgui.Spacing()
+                imgui.Separator()
+                imgui.Spacing()
+            end
+
             imgui.TextColored(imgui.ImVec4(0.80, 0.00, 0.00, 1.0), u8"Quick Actions")
             if imgui.Button(u8'Reconnect', imgui.ImVec2(-1, 30)) then performReconnect(Features.Global.reconnectDelay) end
             if imgui.Button(u8'Unfreeze', imgui.ImVec2(-1, 30)) then unfreeze_player() end
@@ -772,6 +794,9 @@ function imgui.OnDrawFrame()
                 Features.Weapon.hitsound = UI_Buffers.hitsound.v
             end
 
+            if imgui.Checkbox(u8'Infinite Ammo', UI_Buffers.infiniteAmmo) then Features.Weapon.infiniteAmmo = UI_Buffers.infiniteAmmo.v end
+            if imgui.Checkbox(u8'Full Weapon Skills', UI_Buffers.fullSkills) then Features.Weapon.fullSkills = UI_Buffers.fullSkills.v end
+
             imgui.Separator()
             imgui.Text("Silent Aimbot")
             if imgui.Checkbox(u8'Enable Silent Aim', imgui.ImBool(Features.Weapon.aimbotEnabled)) then Features.Weapon.aimbotEnabled = not Features.Weapon.aimbotEnabled end
@@ -779,6 +804,13 @@ function imgui.OnDrawFrame()
             if imgui.Checkbox(u8'Draw FOV Circle', imgui.ImBool(Features.Weapon.drawFovCircle)) then Features.Weapon.drawFovCircle = not Features.Weapon.drawFovCircle end
             if imgui.SliderInt(u8'FOV', UI_Buffers.aimFov, 1, 90) then Features.Weapon.aimFov = UI_Buffers.aimFov.v end
             if imgui.SliderInt(u8'Max Distance', UI_Buffers.aimMaxDist, 1, 200) then Features.Weapon.aimMaxDist = UI_Buffers.aimMaxDist.v end
+            
+            local bones = {u8'Random', u8'Head', u8'Chest'}
+            if imgui.Combo(u8'Target Bone', UI_Buffers.targetBone, bones) then
+                Features.Weapon.targetBone = UI_Buffers.targetBone.v
+            end
+
+            if imgui.InputInt(u8'Target ID (-1 = Auto)', UI_Buffers.aimTargetId) then Features.Weapon.targetId = UI_Buffers.aimTargetId.v end
 
         elseif Features.Global.activeTab == 2 then -- VISUAL
             CenterText(u8'VISUAL CONFIGURATION')
@@ -1107,7 +1139,7 @@ function imgui.OnDrawFrame()
             CenterText(u8'ABOUT PYRRHA')
             imgui.Separator()
             imgui.Text(u8'Pyrrha - Multi-purpose Utility Script')
-            imgui.Text(u8'Version: 1.2 (Silent Aimbot)')
+            imgui.Text(u8'Version: 1.3 (Silent Aimbot)')
             imgui.Text(u8'Author: rmux')
 
             imgui.Spacing()
@@ -1169,19 +1201,47 @@ function sampev.onSendBulletSync(data)
     if not Features.Weapon.aimbotEnabled then return end
     local weap = getCurrentCharWeapon(PLAYER_PED)
     if not getDamage(weap) then return end
-    local id, ped = getClosestPlayerFromCrosshair()
+    
+    local id, ped = -1, -1
+    if Features.Weapon.targetId ~= -1 then
+        if sampIsPlayerConnected(Features.Weapon.targetId) then
+            local res, handle = sampGetCharHandleBySampPlayerId(Features.Weapon.targetId)
+            if res and doesCharExist(handle) and not isCharDead(handle) then
+                id = Features.Weapon.targetId
+                ped = handle
+            end
+        end
+    else
+        id, ped = getClosestPlayerFromCrosshair()
+    end
+
     if id == -1 then return end
     if not getcond(ped) then return end
     data.targetType = 1
-    local px, py, pz = getCharCoordinates(ped)
+    
+    local tx, ty, tz
+    local samp_bodypart = 3 -- Default Torso
+
+    if Features.Weapon.targetBone == 1 then -- Head
+        tx, ty, tz = getBodyPartCoordinates(8, ped)
+        samp_bodypart = 9
+    elseif Features.Weapon.targetBone == 2 then -- Chest
+        tx, ty, tz = getBodyPartCoordinates(3, ped)
+        samp_bodypart = 3
+    else -- Random / Default
+        tx, ty, tz = getCharCoordinates(ped)
+        tz = tz + 0.5 -- Lift slightly from feet
+        samp_bodypart = 3
+    end
+
     data.targetId = id
 
-    data.target = { x = px + rand(), y = py + rand(), z = pz + rand() }
+    data.target = { x = tx + rand(), y = ty + rand(), z = tz + rand() }
     data.center = { x = rand(), y = rand(), z = rand() }
 
     lua_thread.create(function()
          wait(1)
-        sampSendGiveDamage(id, getDamage(weap), weap, 3)
+        sampSendGiveDamage(id, getDamage(weap), weap, samp_bodypart)
     end)
 end
 
@@ -1396,7 +1456,10 @@ local function RunCharacterLogic()
 
     if Features.Weapon.spread then memory.setfloat(0x8D2E64, 0.0) else memory.setfloat(0x8D2E64, 1.0) end
 
-    if Features.Weapon.norl then
+    memory.setint8(0x969178, Features.Weapon.infiniteAmmo and 1 or 0, false)
+    memory.setint8(0x969179, Features.Weapon.fullSkills and 1 or 0, false)
+
+    if isCharShooting(PLAYER_PED) and Features.Weapon.norl then
         local weapon = getCurrentCharWeapon(PLAYER_PED)
         local nbs = raknetNewBitStream()
         raknetBitStreamWriteInt32(nbs, weapon)
@@ -1454,7 +1517,7 @@ function main()
     while not isSampLoaded() or not isSampAvailable() do wait(100) end
     
     apply_flux_style()
-    sampAddChatMessage("{00FF00}[Pyrrha 1.2] Script loaded! Press 'U' for menu.", -1)
+    sampAddChatMessage("{00FF00}[Pyrrha 1.3] Script loaded! Press 'U' for menu.", -1)
     writeLog("Script loaded successfully!")
     
     check_for_update()
