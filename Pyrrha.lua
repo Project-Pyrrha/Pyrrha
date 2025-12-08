@@ -1,6 +1,6 @@
 script_name("Pyrrha")
 script_author("rmux")
-script_version("1.3")
+script_version("1.4")
 script_dependencies("SAMP")
 
 require "lib.moonloader"
@@ -402,7 +402,7 @@ function check_for_update(force)
                 
                 local info = decodeJson(response)
                 local tag = "{00FF00}[Pyrrha] "
-                local local_version = 1.3 -- Matches script_version
+                local local_version = 1.4 -- Matches script_version
                 
                 if info and info.version then
                     local remote_version = tonumber(info.version)
@@ -449,6 +449,12 @@ function unfreeze_player()
     end
     restoreCameraJumpcut()
     sampAddChatMessage('{00FF00}[Pyrrha] You have been {29C730}unfrozen{FFFFFF}.', -1)
+end
+
+function clearChat()
+    for i = 1, 100 do
+        sampAddChatMessage("", 0)
+    end
 end
 
 function explode_argb(argb)
@@ -642,56 +648,74 @@ function apply_flux_style()
     local clr = imgui.Col
     local ImVec4 = imgui.ImVec4
 
-    -- PYRRHA THEME (Red Flame)
-    style.WindowRounding = 10.0
+    -- PYRRHA THEME (Website Match: Black/Red/Terminal)
+    style.WindowRounding = 0.0
     style.WindowTitleAlign = imgui.ImVec2(0.5, 0.5)
-    style.ChildWindowRounding = 8.0
-    style.FrameRounding = 6.0
+    style.ChildWindowRounding = 0.0
+    style.FrameRounding = 0.0
     style.ItemSpacing = imgui.ImVec2(10, 8)
-    style.ScrollbarSize = 12.0
-    style.ScrollbarRounding = 12.0
-    style.GrabMinSize = 12.0
-    style.GrabRounding = 6.0
+    style.ScrollbarSize = 8.0
+    style.ScrollbarRounding = 0.0
+    style.GrabMinSize = 8.0
+    style.GrabRounding = 0.0
     
-    -- Darker, cleaner background
-    colors[clr.Text] = ImVec4(0.90, 0.90, 0.93, 1.00)
-    colors[clr.TextDisabled] = ImVec4(0.40, 0.40, 0.45, 1.00)
-    colors[clr.WindowBg] = ImVec4(0.07, 0.07, 0.09, 0.85)
-    colors[clr.ChildWindowBg] = ImVec4(0.10, 0.10, 0.12, 0.60)
-    colors[clr.PopupBg] = ImVec4(0.07, 0.07, 0.09, 0.90)
-    colors[clr.Border] = ImVec4(0.25, 0.25, 0.30, 0.50)
+    -- Palette based on website
+    local color_black       = ImVec4(0.00, 0.00, 0.00, 1.00)
+    local color_offblack    = ImVec4(0.04, 0.04, 0.04, 1.00) -- #0a0a0a
+    local color_terminal    = ImVec4(0.80, 0.80, 0.80, 1.00) -- #cccccc
+    local color_dim         = ImVec4(0.40, 0.40, 0.40, 1.00) -- #666666
+    
+    -- Precise #dc2626 (220, 38, 38)
+    local color_red         = ImVec4(0.863, 0.149, 0.149, 1.00) 
+    local color_red_hover   = ImVec4(0.950, 0.200, 0.200, 1.00) -- Brighter (Hotter)
+    local color_red_active  = ImVec4(1.000, 0.300, 0.300, 1.00) -- Brightest (Fire Core)
+    
+    local color_border      = ImVec4(0.15, 0.15, 0.15, 1.00) -- #171717
+
+    colors[clr.Text] = color_terminal
+    colors[clr.TextDisabled] = color_dim
+    colors[clr.WindowBg] = ImVec4(0.00, 0.00, 0.00, 0.94) -- Less Transparent Main Window
+    colors[clr.ChildWindowBg] = ImVec4(0.04, 0.04, 0.04, 0.85) -- Less Transparent Child Window
+    colors[clr.PopupBg] = ImVec4(0.04, 0.04, 0.04, 0.96)
+    colors[clr.Border] = color_border
     colors[clr.BorderShadow] = ImVec4(0.00, 0.00, 0.00, 0.00)
     
     -- Input fields
-    colors[clr.FrameBg] = ImVec4(0.15, 0.15, 0.18, 1.00)
-    colors[clr.FrameBgHovered] = ImVec4(0.20, 0.20, 0.24, 1.00)
-    colors[clr.FrameBgActive] = ImVec4(0.25, 0.25, 0.30, 1.00)
+    colors[clr.FrameBg] = ImVec4(0.08, 0.08, 0.08, 0.85) -- Less Transparent Inputs
+    colors[clr.FrameBgHovered] = ImVec4(0.12, 0.12, 0.12, 0.90)
+    colors[clr.FrameBgActive] = ImVec4(0.15, 0.15, 0.15, 0.95)
     
     -- Title bar
-    colors[clr.TitleBg] = ImVec4(0.07, 0.07, 0.09, 1.00)
-    colors[clr.TitleBgActive] = ImVec4(0.07, 0.07, 0.09, 1.00)
-    colors[clr.TitleBgCollapsed] = ImVec4(0.07, 0.07, 0.09, 1.00)
+    colors[clr.TitleBg] = ImVec4(0.00, 0.00, 0.00, 0.94)
+    colors[clr.TitleBgActive] = ImVec4(0.00, 0.00, 0.00, 0.94)
+    colors[clr.TitleBgCollapsed] = ImVec4(0.00, 0.00, 0.00, 0.94)
     
-    -- Accents (Darker Red / Crimson)
-    local accent = ImVec4(0.60, 0.00, 0.00, 1.00)
-    local accent_hover = ImVec4(0.75, 0.05, 0.05, 1.00)
-    local accent_active = ImVec4(0.90, 0.10, 0.10, 1.00)
+    -- Accents
+    colors[clr.CheckMark] = color_red
+    colors[clr.SliderGrab] = color_red
+    colors[clr.SliderGrabActive] = color_red_active
+    
+    colors[clr.Button] = ImVec4(0.08, 0.08, 0.08, 0.85) -- Less Transparent Buttons
+    colors[clr.ButtonHovered] = color_red
+    colors[clr.ButtonActive] = color_red_active
+    
+    colors[clr.Header] = color_red
+    colors[clr.HeaderHovered] = color_red_hover
+    colors[clr.HeaderActive] = color_red_active
+    
+    colors[clr.Separator] = color_border
+    colors[clr.ResizeGrip] = color_red
+    colors[clr.ResizeGripHovered] = color_red_hover
+    colors[clr.ResizeGripActive] = color_red_active
+    
+    colors[clr.TextSelectedBg] = ImVec4(0.863, 0.149, 0.149, 0.35)
+    colors[clr.ModalWindowDarkening] = ImVec4(0.00, 0.00, 0.00, 0.70)
 
-    colors[clr.CheckMark] = accent
-    colors[clr.SliderGrab] = accent
-    colors[clr.SliderGrabActive] = accent_active
-    colors[clr.Button] = ImVec4(0.15, 0.15, 0.18, 1.00)
-    colors[clr.ButtonHovered] = accent_hover
-    colors[clr.ButtonActive] = accent_active
-    colors[clr.Header] = accent
-    colors[clr.HeaderHovered] = accent_hover
-    colors[clr.HeaderActive] = accent_active
-    colors[clr.Separator] = ImVec4(0.25, 0.25, 0.30, 0.50)
-    colors[clr.ResizeGrip] = ImVec4(0.26, 0.59, 0.98, 0.25)
-    colors[clr.ResizeGripHovered] = ImVec4(0.26, 0.59, 0.98, 0.67)
-    colors[clr.ResizeGripActive] = ImVec4(0.26, 0.59, 0.98, 0.95)
-    colors[clr.TextSelectedBg] = ImVec4(0.26, 0.59, 0.98, 0.35)
-    colors[clr.ModalWindowDarkening] = ImVec4(0.80, 0.80, 0.80, 0.35)
+    -- Scrollbar
+    colors[clr.ScrollbarBg] = color_black
+    colors[clr.ScrollbarGrab] = ImVec4(0.20, 0.20, 0.20, 1.00)
+    colors[clr.ScrollbarGrabHovered] = color_red
+    colors[clr.ScrollbarGrabActive] = color_red_active
 end
 
 function CenterText(text)
@@ -738,6 +762,7 @@ function imgui.OnDrawFrame()
             imgui.TextColored(imgui.ImVec4(0.80, 0.00, 0.00, 1.0), u8"Quick Actions")
             if imgui.Button(u8'Reconnect', imgui.ImVec2(-1, 30)) then performReconnect(Features.Global.reconnectDelay) end
             if imgui.Button(u8'Unfreeze', imgui.ImVec2(-1, 30)) then unfreeze_player() end
+            if imgui.Button(u8'Clear Chat', imgui.ImVec2(-1, 30)) then clearChat() end
             if imgui.Button(u8'Fix Wheels', imgui.ImVec2(-1, 30)) then
                 if isCharInAnyCar(PLAYER_PED) then
                     local veh = storeCarCharIsInNoSave(PLAYER_PED)
@@ -1139,7 +1164,7 @@ function imgui.OnDrawFrame()
             CenterText(u8'ABOUT PYRRHA')
             imgui.Separator()
             imgui.Text(u8'Pyrrha - Multi-purpose Utility Script')
-            imgui.Text(u8'Version: 1.3 (Silent Aimbot)')
+            imgui.Text(u8'Version: 1.4 (Release)')
             imgui.Text(u8'Author: rmux')
 
             imgui.Spacing()
@@ -1352,6 +1377,7 @@ local function HandleKeybinds()
     if wasKeyPressed(keybinds.speed_decrease) then
         Features.Car.currentTargetSpeed = math.max(Features.Car.currentTargetSpeed - Features.Car.speedIncrement, 1)
         Features.Car.targetSpeed = math.floor(Features.Car.currentTargetSpeed / CONSTANTS.SPEED_CALIBRATION)
+       
         UI_Buffers.targetSpeed.v = Features.Car.currentTargetSpeed
         sampAddChatMessage("{00FF00}[Pyrrha] Target speed: " .. Features.Car.currentTargetSpeed, -1)
     end
@@ -1517,7 +1543,7 @@ function main()
     while not isSampLoaded() or not isSampAvailable() do wait(100) end
     
     apply_flux_style()
-    sampAddChatMessage("{00FF00}[Pyrrha 1.3] Script loaded! Press 'U' for menu.", -1)
+    sampAddChatMessage("{00FF00}[Pyrrha 1.4] Script loaded! Press 'U' for menu.", -1)
     writeLog("Script loaded successfully!")
     
     check_for_update()
