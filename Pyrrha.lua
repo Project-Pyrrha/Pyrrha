@@ -649,15 +649,23 @@ function apply_flux_style()
     local ImVec4 = imgui.ImVec4
 
     -- PYRRHA THEME (Website Match: Black/Red/Terminal)
-    style.WindowRounding = 0.0
+    style.WindowPadding = imgui.ImVec2(14, 14)
+    style.WindowRounding = 3.0
     style.WindowTitleAlign = imgui.ImVec2(0.5, 0.5)
-    style.ChildWindowRounding = 0.0
-    style.FrameRounding = 0.0
-    style.ItemSpacing = imgui.ImVec2(10, 8)
-    style.ScrollbarSize = 8.0
-    style.ScrollbarRounding = 0.0
-    style.GrabMinSize = 8.0
-    style.GrabRounding = 0.0
+    style.ChildWindowRounding = 3.0
+    style.FrameRounding = 3.0
+    style.PopupRounding = 3.0
+    style.FramePadding = imgui.ImVec2(10, 6)
+    style.ItemSpacing = imgui.ImVec2(10, 10)
+    style.ItemInnerSpacing = imgui.ImVec2(8, 6)
+    style.WindowBorderSize = 1.0
+    style.ChildBorderSize = 1.0
+    style.FrameBorderSize = 1.0
+    style.ScrollbarSize = 10.0
+    style.ScrollbarRounding = 3.0
+    style.GrabMinSize = 10.0
+    style.GrabRounding = 3.0
+    style.ButtonTextAlign = imgui.ImVec2(0.5, 0.5)
     
     -- Palette based on website
     local color_black       = ImVec4(0.00, 0.00, 0.00, 1.00)
@@ -674,34 +682,34 @@ function apply_flux_style()
 
     colors[clr.Text] = color_terminal
     colors[clr.TextDisabled] = color_dim
-    colors[clr.WindowBg] = ImVec4(0.00, 0.00, 0.00, 0.94) -- Less Transparent Main Window
-    colors[clr.ChildWindowBg] = ImVec4(0.04, 0.04, 0.04, 0.85) -- Less Transparent Child Window
-    colors[clr.PopupBg] = ImVec4(0.04, 0.04, 0.04, 0.96)
+    colors[clr.WindowBg] = ImVec4(0.01, 0.01, 0.01, 0.96)
+    colors[clr.ChildWindowBg] = ImVec4(0.05, 0.05, 0.05, 0.92)
+    colors[clr.PopupBg] = ImVec4(0.04, 0.04, 0.04, 0.98)
     colors[clr.Border] = color_border
     colors[clr.BorderShadow] = ImVec4(0.00, 0.00, 0.00, 0.00)
     
     -- Input fields
-    colors[clr.FrameBg] = ImVec4(0.08, 0.08, 0.08, 0.85) -- Less Transparent Inputs
-    colors[clr.FrameBgHovered] = ImVec4(0.12, 0.12, 0.12, 0.90)
-    colors[clr.FrameBgActive] = ImVec4(0.15, 0.15, 0.15, 0.95)
+    colors[clr.FrameBg] = ImVec4(0.08, 0.08, 0.08, 0.92)
+    colors[clr.FrameBgHovered] = ImVec4(0.11, 0.11, 0.11, 0.96)
+    colors[clr.FrameBgActive] = ImVec4(0.14, 0.14, 0.14, 1.00)
     
     -- Title bar
-    colors[clr.TitleBg] = ImVec4(0.00, 0.00, 0.00, 0.94)
-    colors[clr.TitleBgActive] = ImVec4(0.00, 0.00, 0.00, 0.94)
-    colors[clr.TitleBgCollapsed] = ImVec4(0.00, 0.00, 0.00, 0.94)
+    colors[clr.TitleBg] = ImVec4(0.01, 0.01, 0.01, 0.98)
+    colors[clr.TitleBgActive] = ImVec4(0.01, 0.01, 0.01, 0.98)
+    colors[clr.TitleBgCollapsed] = ImVec4(0.01, 0.01, 0.01, 0.98)
     
     -- Accents
     colors[clr.CheckMark] = color_red
     colors[clr.SliderGrab] = color_red
     colors[clr.SliderGrabActive] = color_red_active
     
-    colors[clr.Button] = ImVec4(0.08, 0.08, 0.08, 0.85) -- Less Transparent Buttons
-    colors[clr.ButtonHovered] = color_red
-    colors[clr.ButtonActive] = color_red_active
+    colors[clr.Button] = ImVec4(0.07, 0.07, 0.07, 0.92)
+    colors[clr.ButtonHovered] = ImVec4(0.16, 0.08, 0.08, 1.00)
+    colors[clr.ButtonActive] = ImVec4(0.22, 0.10, 0.10, 1.00)
     
-    colors[clr.Header] = color_red
-    colors[clr.HeaderHovered] = color_red_hover
-    colors[clr.HeaderActive] = color_red_active
+    colors[clr.Header] = ImVec4(0.18, 0.07, 0.07, 0.92)
+    colors[clr.HeaderHovered] = color_red
+    colors[clr.HeaderActive] = color_red_hover
     
     colors[clr.Separator] = color_border
     colors[clr.ResizeGrip] = color_red
@@ -718,6 +726,45 @@ function apply_flux_style()
     colors[clr.ScrollbarGrabActive] = color_red_active
 end
 
+function ui_color(r, g, b, a)
+    return imgui.ImVec4(r, g, b, a or 1.0)
+end
+
+function DrawSectionHeader(title, subtitle)
+    imgui.TextColored(ui_color(0.863, 0.149, 0.149, 1.0), u8(title))
+    if subtitle then
+        imgui.TextColored(ui_color(0.45, 0.45, 0.45, 1.0), u8(subtitle))
+    end
+    imgui.Separator()
+    imgui.Spacing()
+end
+
+function DrawSidebarInfo(label, value)
+    imgui.TextColored(ui_color(0.45, 0.45, 0.45, 1.0), u8(label))
+    imgui.TextWrapped(u8(value))
+end
+
+function DrawSidebarTab(tab_id, label)
+    local active = Features.Global.activeTab == tab_id
+    local button_text = active and ("> " .. label) or label
+
+    if active then
+        imgui.PushStyleColor(imgui.Col.Button, ui_color(0.18, 0.07, 0.07, 1.0))
+        imgui.PushStyleColor(imgui.Col.ButtonHovered, ui_color(0.24, 0.09, 0.09, 1.0))
+        imgui.PushStyleColor(imgui.Col.ButtonActive, ui_color(0.30, 0.12, 0.12, 1.0))
+        imgui.PushStyleColor(imgui.Col.Text, ui_color(1.00, 0.92, 0.92, 1.0))
+    else
+        imgui.PushStyleColor(imgui.Col.Button, ui_color(0.05, 0.05, 0.05, 0.98))
+        imgui.PushStyleColor(imgui.Col.ButtonHovered, ui_color(0.10, 0.10, 0.10, 1.0))
+        imgui.PushStyleColor(imgui.Col.ButtonActive, ui_color(0.18, 0.07, 0.07, 1.0))
+        imgui.PushStyleColor(imgui.Col.Text, ui_color(0.80, 0.80, 0.80, 1.0))
+    end
+
+    local clicked = imgui.Button(u8(button_text), imgui.ImVec2(-1, 34))
+    imgui.PopStyleColor(4)
+    return clicked
+end
+
 function CenterText(text)
     local width = imgui.GetWindowWidth()
     local calc = imgui.CalcTextSize(text)
@@ -730,36 +777,47 @@ end
 -- ===============================================================================
 function imgui.OnDrawFrame()
     if UI_Buffers.mainWindow.v then
-        imgui.SetNextWindowSize(imgui.ImVec2(720, 550), imgui.Cond.FirstUseEver)
+        imgui.SetNextWindowSize(imgui.ImVec2(760, 560), imgui.Cond.FirstUseEver)
         imgui.Begin(u8'Pyrrha Panel', UI_Buffers.mainWindow)
 
-        imgui.BeginChild('##sidebar', imgui.ImVec2(160, -1), true)
+        imgui.BeginChild('##sidebar', imgui.ImVec2(185, -1), true)
             imgui.PushItemWidth(-1)
-            if imgui.Button(Features.Global.activeTab == 1 and u8'> Weapon' or u8'Weapon', imgui.ImVec2(-1, 40)) then Features.Global.activeTab = 1 end
-            if imgui.Button(Features.Global.activeTab == 2 and u8'> Visual' or u8'Visual', imgui.ImVec2(-1, 40)) then Features.Global.activeTab = 2 end
-            if imgui.Button(Features.Global.activeTab == 3 and u8'> Car' or u8'Car', imgui.ImVec2(-1, 40)) then Features.Global.activeTab = 3 end
-            if imgui.Button(Features.Global.activeTab == 4 and u8'> Misc' or u8'Misc', imgui.ImVec2(-1, 40)) then Features.Global.activeTab = 4 end
-            if imgui.Button(Features.Global.activeTab == 5 and u8'> Keybinds' or u8'Keybinds', imgui.ImVec2(-1, 40)) then Features.Global.activeTab = 5 end
-            if imgui.Button(Features.Global.activeTab == 7 and u8'> Configs' or u8'Configs', imgui.ImVec2(-1, 40)) then 
-                Features.Global.activeTab = 7 
-                refreshConfigList()
-            end
-            if imgui.Button(Features.Global.activeTab == 6 and u8'> About' or u8'About', imgui.ImVec2(-1, 40)) then Features.Global.activeTab = 6 end
-            
+            imgui.BeginChild('##brand', imgui.ImVec2(-1, 74), true)
+                DrawSidebarInfo("PYRRHA", "CONTROL PANEL")
+                imgui.Spacing()
+                DrawSidebarInfo("Toggle Key", getKeyName(keybinds.menu_toggle))
+            imgui.EndChild()
+
             imgui.Spacing()
-            imgui.Separator()
+
+            imgui.BeginChild('##nav', imgui.ImVec2(-1, 272), true)
+                DrawSectionHeader("Navigation")
+                if DrawSidebarTab(1, 'Weapon') then Features.Global.activeTab = 1 end
+                if DrawSidebarTab(2, 'Visual') then Features.Global.activeTab = 2 end
+                if DrawSidebarTab(3, 'Car') then Features.Global.activeTab = 3 end
+                if DrawSidebarTab(4, 'Misc') then Features.Global.activeTab = 4 end
+                if DrawSidebarTab(5, 'Keybinds') then Features.Global.activeTab = 5 end
+                if DrawSidebarTab(7, 'Configs') then
+                    Features.Global.activeTab = 7
+                    refreshConfigList()
+                end
+                if DrawSidebarTab(6, 'About') then Features.Global.activeTab = 6 end
+            imgui.EndChild()
+
             imgui.Spacing()
 
             local ip, port = sampGetCurrentServerAddress()
             if ip then
-                imgui.TextColored(imgui.ImVec4(0.6, 0.6, 0.6, 1.0), u8"Server IP:")
-                imgui.Text(ip .. ":" .. port)
-                imgui.Spacing()
-                imgui.Separator()
+                imgui.BeginChild('##server', imgui.ImVec2(-1, 72), true)
+                    DrawSidebarInfo("Server", ip .. ":" .. port)
+                    imgui.Spacing()
+                    DrawSidebarInfo("Reconnect Delay", tostring(Features.Global.reconnectDelay) .. " sec")
+                imgui.EndChild()
                 imgui.Spacing()
             end
 
-            imgui.TextColored(imgui.ImVec4(0.80, 0.00, 0.00, 1.0), u8"Quick Actions")
+            imgui.BeginChild('##quick_actions', imgui.ImVec2(-1, 0), true)
+            DrawSectionHeader("Quick Actions", "Fast utility. No logic changed.")
             if imgui.Button(u8'Reconnect', imgui.ImVec2(-1, 30)) then performReconnect(Features.Global.reconnectDelay) end
             if imgui.Button(u8'Unfreeze', imgui.ImVec2(-1, 30)) then unfreeze_player() end
             if imgui.Button(u8'Clear Chat', imgui.ImVec2(-1, 30)) then clearChat() end
@@ -780,6 +838,7 @@ function imgui.OnDrawFrame()
                     setCarHealth(myCar, 0)
                 end
             end
+            imgui.EndChild()
             imgui.PopItemWidth()
         imgui.EndChild()
 
@@ -788,11 +847,9 @@ function imgui.OnDrawFrame()
         imgui.BeginChild('##content', imgui.ImVec2(-1, -1), true)
 
         if Features.Global.activeTab == 1 then -- WEAPON
-            CenterText(u8'WEAPON CONFIGURATION')
-            imgui.Separator()
-            imgui.Spacing()
+            DrawSectionHeader('WEAPON SUITE', 'Ballistics, ammo and silent aim controls.')
             
-            -- Checkboxes
+            DrawSectionHeader('Core Toggles')
             if imgui.Checkbox(u8'NoSpread', imgui.ImBool(Features.Weapon.spread)) then
                 Features.Weapon.spread = not Features.Weapon.spread
                 sampAddChatMessage(Features.Weapon.spread and '{00FF00}NoSpread ON' or '{FF0000}NoSpread OFF', -1)
@@ -822,8 +879,7 @@ function imgui.OnDrawFrame()
             if imgui.Checkbox(u8'Infinite Ammo', UI_Buffers.infiniteAmmo) then Features.Weapon.infiniteAmmo = UI_Buffers.infiniteAmmo.v end
             if imgui.Checkbox(u8'Full Weapon Skills', UI_Buffers.fullSkills) then Features.Weapon.fullSkills = UI_Buffers.fullSkills.v end
 
-            imgui.Separator()
-            imgui.Text("Silent Aimbot")
+            DrawSectionHeader('Silent Aimbot', 'Targeting options and FOV tuning.')
             if imgui.Checkbox(u8'Enable Silent Aim', imgui.ImBool(Features.Weapon.aimbotEnabled)) then Features.Weapon.aimbotEnabled = not Features.Weapon.aimbotEnabled end
             if imgui.Checkbox(u8'Through Walls', imgui.ImBool(Features.Weapon.aimThroughWalls)) then Features.Weapon.aimThroughWalls = not Features.Weapon.aimThroughWalls end
             if imgui.Checkbox(u8'Draw FOV Circle', imgui.ImBool(Features.Weapon.drawFovCircle)) then Features.Weapon.drawFovCircle = not Features.Weapon.drawFovCircle end
@@ -838,11 +894,9 @@ function imgui.OnDrawFrame()
             if imgui.InputInt(u8'Target ID (-1 = Auto)', UI_Buffers.aimTargetId) then Features.Weapon.targetId = UI_Buffers.aimTargetId.v end
 
         elseif Features.Global.activeTab == 2 then -- VISUAL
-            CenterText(u8'VISUAL CONFIGURATION')
-            imgui.Separator()
-            imgui.Spacing()
+            DrawSectionHeader('VISUAL SUITE', 'ESP, overlays and on-screen detail.')
 
-            -- Toggles
+            DrawSectionHeader('ESP Toggles')
             if imgui.Checkbox(u8'Enable ESP (F4)', imgui.ImBool(Features.Visual.espEnabled)) then
                 Features.Visual.espEnabled = not Features.Visual.espEnabled
             end
@@ -856,9 +910,7 @@ function imgui.OnDrawFrame()
                 Features.Visual.infoBarEnabled = UI_Buffers.infoBar.v
             end
 
-            imgui.Spacing()
-            imgui.Separator()
-            imgui.Text("ESP Settings")
+            DrawSectionHeader('ESP Settings', 'Tags, style and box thickness.')
             
             -- ESP Specific Toggles
             imgui.Indent(20)
@@ -882,12 +934,11 @@ function imgui.OnDrawFrame()
             end
 
         elseif Features.Global.activeTab == 3 then -- CAR
-            CenterText(u8'VEHICLE MANAGER')
-            imgui.Separator()
+            DrawSectionHeader('VEHICLE MANAGER', 'Speed, handling and vehicle state.')
             imgui.Columns(2, "CarCols", true)
             
             -- Left Column: Info & Speed
-            imgui.TextColored(imgui.ImVec4(0.80, 0.00, 0.00, 1.0), u8"[ Vehicle Information ]")
+            DrawSectionHeader('Vehicle Information')
             if isCharInAnyCar(PLAYER_PED) then
                 local car = storeCarCharIsInNoSave(PLAYER_PED)
                 local model = getCarModel(car)
@@ -921,8 +972,7 @@ function imgui.OnDrawFrame()
             end
             
             imgui.Spacing()
-            imgui.Separator()
-            imgui.TextColored(imgui.ImVec4(0.80, 0.00, 0.00, 1.0), u8"[ Speed Control ]")
+            DrawSectionHeader('Speed Control')
             
             -- Speed Toggles
             if imgui.Checkbox(u8'Auto Speed (O)', imgui.ImBool(Features.Car.accelMode)) then
@@ -954,7 +1004,7 @@ function imgui.OnDrawFrame()
             end
 
             imgui.NextColumn() -- Right Column: Toggles & Sliders
-            imgui.TextColored(imgui.ImVec4(0.80, 0.00, 0.00, 1.0), u8"[ Physics & Handling ]")
+            DrawSectionHeader('Physics & Handling')
             
             -- Handling Toggles
             if imgui.Checkbox(u8'Drift Mode', imgui.ImBool(Features.Car.driftMode)) then
@@ -981,7 +1031,7 @@ function imgui.OnDrawFrame()
             imgui.PopItemWidth()
             
             imgui.Spacing()
-            imgui.TextColored(imgui.ImVec4(0.80, 0.00, 0.00, 1.0), u8"[ Cheats ]")
+            DrawSectionHeader('Cheats')
             
             -- Cheat Toggles
             if imgui.Checkbox(u8'GM InCar', imgui.ImBool(Features.Car.gmCar)) then Features.Car.gmCar = not Features.Car.gmCar end
@@ -999,11 +1049,11 @@ function imgui.OnDrawFrame()
             imgui.Columns(1)
 
         elseif Features.Global.activeTab == 4 then -- MISC
-            CenterText(u8'MISCELLANEOUS')
-            imgui.Separator()
+            DrawSectionHeader('MISCELLANEOUS', 'Player utility, movement and reconnect helpers.')
             imgui.Columns(2, "MiscCols", false)
             
             -- Left Column Toggles
+            DrawSectionHeader('Player')
             if imgui.Checkbox(u8'AntiStun (F3)', imgui.ImBool(Features.Misc.antiStun)) then Features.Misc.antiStun = not Features.Misc.antiStun end
             if imgui.Checkbox(u8'Infinite Oxygen', UI_Buffers.oxygen) then Features.Misc.oxygen = UI_Buffers.oxygen.v end
             if imgui.Checkbox(u8'Mega Jump', UI_Buffers.megaJump) then Features.Misc.megaJump = UI_Buffers.megaJump.v end
@@ -1013,6 +1063,7 @@ function imgui.OnDrawFrame()
             imgui.NextColumn()
             
             -- Right Column Toggles
+            DrawSectionHeader('Utility')
             if imgui.Checkbox(u8'QuickStop', UI_Buffers.quickStop) then Features.Misc.quickStop = UI_Buffers.quickStop.v end
             if imgui.Checkbox(u8'FakeAFK (F6)', imgui.ImBool(Features.Misc.fakeAfk)) then
                 Features.Misc.fakeAfk = not Features.Misc.fakeAfk
@@ -1043,9 +1094,8 @@ function imgui.OnDrawFrame()
             if imgui.Button(u8'Save Default Settings', imgui.ImVec2(-1, 25)) then saveSettings() end
 
         elseif Features.Global.activeTab == 5 then -- KEYBINDS
-            CenterText(u8'KEYBIND MANAGER')
-            imgui.Separator()
-            imgui.TextColored(imgui.ImVec4(0.8, 0.8, 0.8, 1), u8'Press ESC to cancel key binding')
+            DrawSectionHeader('KEYBIND MANAGER', 'Bind hotkeys without leaving menu.')
+            imgui.TextColored(ui_color(0.8, 0.8, 0.8, 1), u8'Press ESC to cancel key binding')
             imgui.BeginChild("KeybindScroll", imgui.ImVec2(0, 300), true)
             for bind_name, key_code in pairs(keybinds) do
                 local display_name = keybind_names[bind_name] or bind_name
@@ -1089,11 +1139,9 @@ function imgui.OnDrawFrame()
             end
 
         elseif Features.Global.activeTab == 7 then -- CONFIGURATION
-            CenterText(u8'CONFIGURATION MANAGER')
-            imgui.Separator()
-            imgui.Spacing()
+            DrawSectionHeader('CONFIGURATION MANAGER', 'Create, load and manage saved setups.')
             
-            imgui.Text(u8"Create New Config:")
+            DrawSectionHeader('Create New Config')
             imgui.PushItemWidth(-1)
             imgui.InputText(u8'##configname', UI_Buffers.configName)
             imgui.PopItemWidth()
@@ -1108,11 +1156,7 @@ function imgui.OnDrawFrame()
                 end
             end
             
-            imgui.Spacing()
-            imgui.Separator()
-            imgui.Spacing()
-            
-            imgui.Text(u8"Available Configs:")
+            DrawSectionHeader('Available Configs')
             local items = Features.Config.list
             
             -- Scrollable List
@@ -1161,8 +1205,7 @@ function imgui.OnDrawFrame()
             imgui.TextWrapped(u8"Configs are saved in: " .. CONSTANTS.SETTINGS_DIR)
 
         elseif Features.Global.activeTab == 6 then -- ABOUT
-            CenterText(u8'ABOUT PYRRHA')
-            imgui.Separator()
+            DrawSectionHeader('ABOUT PYRRHA', 'Release info and update controls.')
             imgui.Text(u8'Pyrrha - Multi-purpose Utility Script')
             imgui.Text(u8'Version: 1.4 (Release)')
             imgui.Text(u8'Author: rmux')
